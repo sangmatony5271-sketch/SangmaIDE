@@ -260,8 +260,8 @@ Welcome to your privacy-focused Android IDE workspace!
     suspend fun ensureGithubWorkflowExists(): ProjectFile {
         val existing = fileDao.getFileByPath(".github/workflows/android_build.yml")
         if (existing != null) {
-            // Auto-upgrade if workflow has obsolete/failing setup-android action
-            if (existing.content.contains("android-actions/setup-android")) {
+            // Auto-upgrade if workflow has obsolete/failing setup-android action or sdkmanager hang
+            if (existing.content.contains("android-actions/setup-android") || !existing.content.contains("android-sdk-license")) {
                 val updated = existing.copy(content = GITHUB_ACTIONS_WORKFLOW_CONTENT)
                 fileDao.insertOrUpdateFile(updated)
                 return updated
@@ -311,19 +311,22 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      # Fix for SDK Setup Error: Using Ubuntu pre-installed Android SDK with automatic licenses & local.properties
-      - name: Set up Android SDK & Accept Licenses
+      # Fix for SDK Setup Error & sdkmanager hang: Direct license hashes injection + local.properties (0 network calls)
+      - name: Set up Android SDK & Instant License Acceptance
         run: |
           ANDROID_SDK_PATH=${'$'}{ANDROID_HOME:-/usr/local/lib/android/sdk}
           echo "ANDROID_HOME=${'$'}ANDROID_SDK_PATH" >> ${'$'}GITHUB_ENV
           echo "ANDROID_SDK_ROOT=${'$'}ANDROID_SDK_PATH" >> ${'$'}GITHUB_ENV
           echo "sdk.dir=${'$'}ANDROID_SDK_PATH" > local.properties
-          # Automatically accept all Android SDK licenses
-          if [ -d "${'$'}ANDROID_SDK_PATH/cmdline-tools/latest/bin" ]; then
-            yes | "${'$'}ANDROID_SDK_PATH/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || true
-          elif [ -d "${'$'}ANDROID_SDK_PATH/tools/bin" ]; then
-            yes | "${'$'}ANDROID_SDK_PATH/tools/bin/sdkmanager" --licenses 2>/dev/null || true
-          fi
+          
+          # Pre-approve all license hashes instantly to bypass sdkmanager network hang & updates
+          mkdir -p "${'$'}ANDROID_SDK_PATH/licenses"
+          printf "24333f8a63b1d8f28fe1ac9c765083abddca0943\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n" > "${'$'}ANDROID_SDK_PATH/licenses/android-sdk-license"
+          printf "84831b9409646a256e301447a82405a741525ddc\n" > "${'$'}ANDROID_SDK_PATH/licenses/android-sdk-preview-license"
+          printf "601085b94cd77f0b54ff864069554499418f6d66\n" > "${'$'}ANDROID_SDK_PATH/licenses/android-googletv-license"
+          printf "859f317696f67ef3d7f30a50a5560e7834b43903\n" > "${'$'}ANDROID_SDK_PATH/licenses/android-sdk-arm-dbt-license"
+          printf "33b6a2b64907970da36f5f4dc4f3010c43f8b503\n" > "${'$'}ANDROID_SDK_PATH/licenses/google-gdk-license"
+          printf "e9acab587f1749a4f1f75642903741a49219b130\n" > "${'$'}ANDROID_SDK_PATH/licenses/mips-android-sysimage-license"
 
       - name: Grant execute permission for gradlew
         run: |

@@ -484,7 +484,7 @@ fun NoTrackIdeSampleApp() {
             val pipelineSteps = listOf(
                 "actions/checkout@v4 - Repository cloned" to 350L,
                 "actions/setup-java@v4 - Set up JDK 17 (Temurin) with Gradle cache" to 400L,
-                "Configuring Android SDK (\$ANDROID_HOME) & Accepting All Licenses" to 450L,
+                "Instant License Hash Injection (Bypassed sdkmanager network hang) & \$ANDROID_HOME" to 450L,
                 "Generating local.properties (sdk.dir) & chmod +x gradlew" to 300L,
                 "Run ./gradlew assembleDebug --no-daemon - Compiling APK..." to 1200L,
                 "Verify APK Output - app-debug.apk validated (14.2 MB)" to 400L,
