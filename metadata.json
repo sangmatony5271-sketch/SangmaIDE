@@ -1,0 +1,6 @@
+{
+  "name": "NoTrack IDE",
+  "description": "Privacy-first Android IDE with E2EE, notrack.ai assistance, Git, Debugger, Live Preview and APK Build tools",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
