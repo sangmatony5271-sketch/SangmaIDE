@@ -260,6 +260,12 @@ Welcome to your privacy-focused Android IDE workspace!
     suspend fun ensureGithubWorkflowExists(): ProjectFile {
         val existing = fileDao.getFileByPath(".github/workflows/android_build.yml")
         if (existing != null) {
+            // Auto-upgrade if workflow has obsolete/failing setup-android action
+            if (existing.content.contains("android-actions/setup-android")) {
+                val updated = existing.copy(content = GITHUB_ACTIONS_WORKFLOW_CONTENT)
+                fileDao.insertOrUpdateFile(updated)
+                return updated
+            }
             return existing
         }
         val workflowFile = ProjectFile(
@@ -305,8 +311,19 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # Fix for SDK Setup Error: Using Ubuntu pre-installed Android SDK with automatic licenses & local.properties
+      - name: Set up Android SDK & Accept Licenses
+        run: |
+          ANDROID_SDK_PATH=${'$'}{ANDROID_HOME:-/usr/local/lib/android/sdk}
+          echo "ANDROID_HOME=${'$'}ANDROID_SDK_PATH" >> ${'$'}GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=${'$'}ANDROID_SDK_PATH" >> ${'$'}GITHUB_ENV
+          echo "sdk.dir=${'$'}ANDROID_SDK_PATH" > local.properties
+          # Automatically accept all Android SDK licenses
+          if [ -d "${'$'}ANDROID_SDK_PATH/cmdline-tools/latest/bin" ]; then
+            yes | "${'$'}ANDROID_SDK_PATH/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || true
+          elif [ -d "${'$'}ANDROID_SDK_PATH/tools/bin" ]; then
+            yes | "${'$'}ANDROID_SDK_PATH/tools/bin/sdkmanager" --licenses 2>/dev/null || true
+          fi
 
       - name: Grant execute permission for gradlew
         run: |

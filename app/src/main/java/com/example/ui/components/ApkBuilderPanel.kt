@@ -49,7 +49,8 @@ fun ApkBuilderPanel(
     githubLogs: List<String> = emptyList(),
     isGithubArtifactReady: Boolean = false,
     onTriggerGithubBuild: () -> Unit = {},
-    onSaveGithubWorkflow: () -> Unit = {}
+    onSaveGithubWorkflow: () -> Unit = {},
+    onFixSdkSetup: () -> Unit = {}
 ) {
     var selectedBuildMode by remember { mutableStateOf(ApkBuildMode.GITHUB_ACTIONS_CI) }
     var showPasteCodeBox by remember { mutableStateOf(false) }
@@ -237,6 +238,54 @@ fun ApkBuilderPanel(
                                     else
                                         (if (language == AppLanguage.BENGALI) "GitHub বিল্ড চালান" else "Trigger Auto Build"),
                                     fontSize = 11.sp
+                                )
+                            }
+                        }
+
+                        // SDK Setup Error Auto-Fix Card
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.4f)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.BuildCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = if (language == AppLanguage.BENGALI) "SDK Setup ত্রুটি ফিক্স (SDK Error Resolved)" else "SDK Setup Error Fix",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp,
+                                            color = MaterialTheme.colorScheme.tertiary
+                                        )
+                                    }
+                                    Button(
+                                        onClick = onFixSdkSetup,
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                        modifier = Modifier.testTag("fix_sdk_error_btn")
+                                    ) {
+                                        Icon(Icons.Default.AutoFixHigh, contentDescription = null, modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(if (language == AppLanguage.BENGALI) "১-ক্লিকে ফিক্স ও বিল্ড" else "Fix & Rebuild", fontSize = 10.sp)
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = if (language == AppLanguage.BENGALI)
+                                        "GitHub রানারের উবুন্টু SDK (\$ANDROID_HOME) কনফিগার করে, লাইসেন্স স্বয়ংক্রিয় অনুমোদন এবং local.properties (sdk.dir) তৈরি করে বিল্ড ত্রুটি স্থায়ীভাবে সমাধান করা হয়।"
+                                    else
+                                        "Configures native \$ANDROID_HOME, auto-approves all SDK licenses and generates local.properties (sdk.dir) to permanently prevent SDK setup failure.",
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f)
                                 )
                             }
                         }

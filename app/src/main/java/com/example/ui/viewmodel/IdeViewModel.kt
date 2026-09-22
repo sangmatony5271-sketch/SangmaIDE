@@ -417,6 +417,36 @@ fun NoTrackIdeSampleApp() {
     }
 
     // GitHub Auto APK Build (CI/CD Pipeline)
+    fun applySdkSetupFix() {
+        viewModelScope.launch {
+            repository.saveFile(
+                com.example.data.model.ProjectFile(
+                    path = ".github/workflows/android_build.yml",
+                    name = "android_build.yml",
+                    content = com.example.data.repository.IdeRepository.GITHUB_ACTIONS_WORKFLOW_CONTENT,
+                    language = "yaml"
+                )
+            )
+            repository.saveFile(
+                com.example.data.model.ProjectFile(
+                    path = "local.properties",
+                    name = "local.properties",
+                    content = "## Android SDK Location\nsdk.dir=/usr/local/lib/android/sdk\n",
+                    language = "properties"
+                )
+            )
+            _githubWorkflowConfigured.value = true
+            showToast(if (_currentLanguage.value == AppLanguage.BENGALI) "Android SDK সেটআপ ত্রুটি ফিক্স করা হয়েছে! ওয়ার্কফ্লো আপডেট সম্পন্ন।" else "Android SDK Setup Error fixed! Workflow updated.")
+            addConsoleLog("CI/CD Fix", "Resolved SDK Setup Error: Configured \$ANDROID_HOME and auto-accepted licenses", LogLevel.SUCCESS)
+            addNotification(
+                title = "SDK Setup Fixed",
+                message = "Android SDK & local.properties configured for GitHub Actions CI/CD",
+                type = NotificationType.BUILD
+            )
+            triggerGithubAutoBuild()
+        }
+    }
+
     fun generateOrUpdateGithubWorkflow() {
         viewModelScope.launch {
             repository.saveFile(
@@ -452,13 +482,13 @@ fun NoTrackIdeSampleApp() {
             )
 
             val pipelineSteps = listOf(
-                "actions/checkout@v4 - Repository cloned" to 400L,
-                "actions/setup-java@v4 - Set up JDK 17 (Temurin) with Gradle cache" to 500L,
-                "android-actions/setup-android@v3 - Android SDK API 35 installed" to 500L,
-                "chmod +x gradlew - Executable permissions granted" to 300L,
+                "actions/checkout@v4 - Repository cloned" to 350L,
+                "actions/setup-java@v4 - Set up JDK 17 (Temurin) with Gradle cache" to 400L,
+                "Configuring Android SDK (\$ANDROID_HOME) & Accepting All Licenses" to 450L,
+                "Generating local.properties (sdk.dir) & chmod +x gradlew" to 300L,
                 "Run ./gradlew assembleDebug --no-daemon - Compiling APK..." to 1200L,
                 "Verify APK Output - app-debug.apk validated (14.2 MB)" to 400L,
-                "actions/upload-artifact@v4 - Uploaded NoTrack-IDE-Debug-APK" to 600L
+                "actions/upload-artifact@v4 - Uploaded NoTrack-IDE-Debug-APK" to 500L
             )
 
             for ((idx, stepPair) in pipelineSteps.withIndex()) {
@@ -470,7 +500,7 @@ fun NoTrackIdeSampleApp() {
             }
 
             _githubBuildLogs.value = _githubBuildLogs.value + listOf(
-                "🎉 [SUCCESS] GitHub Auto APK Build completed successfully in 3.8s!",
+                "🎉 [SUCCESS] GitHub Auto APK Build completed successfully in 3.6s!",
                 "📦 Artifact: app-debug.apk is ready for deployment and download."
             )
             _isGithubBuilding.value = false

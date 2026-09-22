@@ -308,7 +308,8 @@ fun MainIdeScreen(viewModel: IdeViewModel? = null) {
                                     githubLogs = githubLogs,
                                     isGithubArtifactReady = isGithubArtifactReady,
                                     onTriggerGithubBuild = { viewModel?.triggerGithubAutoBuild() },
-                                    onSaveGithubWorkflow = { viewModel?.generateOrUpdateGithubWorkflow() }
+                                    onSaveGithubWorkflow = { viewModel?.generateOrUpdateGithubWorkflow() },
+                                    onFixSdkSetup = { viewModel?.applySdkSetupFix() }
                                 )
                                 else -> LivePreviewView(
                                     activeFileContent = activeFileContent,
@@ -364,7 +365,8 @@ fun MainIdeScreen(viewModel: IdeViewModel? = null) {
                                     githubLogs = githubLogs,
                                     isGithubArtifactReady = isGithubArtifactReady,
                                     onTriggerGithubBuild = { viewModel?.triggerGithubAutoBuild() },
-                                    onSaveGithubWorkflow = { viewModel?.generateOrUpdateGithubWorkflow() }
+                                    onSaveGithubWorkflow = { viewModel?.generateOrUpdateGithubWorkflow() },
+                                    onFixSdkSetup = { viewModel?.applySdkSetupFix() }
                                 )
                                 IdeTab.EDITOR -> Column(modifier = Modifier.fillMaxSize()) {
                                     Box(modifier = Modifier.weight(1f)) {
