@@ -186,9 +186,16 @@ Welcome to your privacy-focused Android IDE workspace!
 - **notrack.ai Assistant**: Zero telemetry AI code completion, bug fixing, and refactoring.
 - **End-to-End Encryption**: E2EE cloud sync & peer collaboration.
 - **Built-in APK Builder**: Interactive Gradle log & simulated APK output.
+- **GitHub Auto APK Build**: Automated CI/CD workflow (.github/workflows/android_build.yml) on push & PR.
 - **Git & Debugger**: Full commit history, branch management, breakpoints & logcat console.
                     """.trimIndent(),
                     language = "markdown"
+                ),
+                ProjectFile(
+                    path = ".github/workflows/android_build.yml",
+                    name = "android_build.yml",
+                    content = GITHUB_ACTIONS_WORKFLOW_CONTENT,
+                    language = "yaml"
                 )
             )
             fileDao.insertAllFiles(defaultFiles)
@@ -197,10 +204,10 @@ Welcome to your privacy-focused Android IDE workspace!
             gitDao.insertCommit(
                 GitCommit(
                     hash = "a1b2c3d4",
-                    message = "Initial commit: Project created in NoTrack IDE",
+                    message = "Initial commit: Project created with GitHub Auto APK Build CI/CD",
                     author = "Developer",
                     branch = "main",
-                    filesChangedCount = 5
+                    filesChangedCount = 6
                 )
             )
 
@@ -248,5 +255,93 @@ Welcome to your privacy-focused Android IDE workspace!
         )
         backupDao.insertBackup(snapshot)
         return snapshot
+    }
+
+    suspend fun ensureGithubWorkflowExists(): ProjectFile {
+        val existing = fileDao.getFileByPath(".github/workflows/android_build.yml")
+        if (existing != null) {
+            return existing
+        }
+        val workflowFile = ProjectFile(
+            path = ".github/workflows/android_build.yml",
+            name = "android_build.yml",
+            content = GITHUB_ACTIONS_WORKFLOW_CONTENT,
+            language = "yaml"
+        )
+        fileDao.insertOrUpdateFile(workflowFile)
+        return workflowFile
+    }
+
+    companion object {
+        val GITHUB_ACTIONS_WORKFLOW_CONTENT = """
+name: Android Auto APK Build CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${'$'}{{ github.workflow }}-${'$'}{{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Grant execute permission for gradlew
+        run: |
+          if [ -f "gradlew" ]; then
+            chmod +x gradlew
+          fi
+
+      - name: Build Debug APK with Gradle
+        run: |
+          if [ -f "gradlew" ]; then
+            ./gradlew assembleDebug --stacktrace --no-daemon
+          else
+            gradle assembleDebug --stacktrace --no-daemon
+          fi
+
+      - name: Verify APK Output
+        run: |
+          echo "Checking generated APK files:"
+          find app/build/outputs/apk/ -name "*.apk" -ls || ls -la app/build/outputs/
+
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NoTrack-IDE-Debug-APK
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 30
+
+      - name: Auto-Release APK (On Version Tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: app/build/outputs/apk/debug/*.apk
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${'$'}{{ secrets.GITHUB_TOKEN }}
+        """.trimIndent()
     }
 }

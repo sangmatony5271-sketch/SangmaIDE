@@ -27,7 +27,8 @@ fun GitPanel(
     stagedFiles: List<String>,
     commits: List<GitCommit>,
     onCommit: (String) -> Unit,
-    language: AppLanguage
+    language: AppLanguage,
+    onTriggerGithubBuild: () -> Unit = {}
 ) {
     var commitMessageInput by remember { mutableStateOf("") }
     var expandedBranchDropdown by remember { mutableStateOf(false) }
@@ -89,7 +90,50 @@ fun GitPanel(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
+
+        // GitHub Actions Auto APK Build Status Banner
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CloudSync, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "GitHub Auto APK Build CI/CD",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = ".github/workflows/android_build.yml (Active)",
+                            fontSize = 10.sp,
+                            fontFamily = FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                }
+
+                FilledTonalButton(
+                    onClick = onTriggerGithubBuild,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(if (language == AppLanguage.BENGALI) "অটো বিল্ড চালান" else "Run CI", fontSize = 10.sp)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
 
         // Commit Box
         Card(
@@ -148,12 +192,12 @@ fun GitPanel(
                 ) {
                     Icon(Icons.Default.Check, contentDescription = null)
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(if (language == AppLanguage.BENGALI) "কমিট ও সায়েন করুন (E2EE Signed)" else "Commit & E2EE Sign")
+                    Text(if (language == AppLanguage.BENGALI) "কমিট ও পুশ (GitHub অটো বিল্ড সহ)" else "Commit & Push (with GitHub Auto Build)")
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         // Commit Log History
         Text(

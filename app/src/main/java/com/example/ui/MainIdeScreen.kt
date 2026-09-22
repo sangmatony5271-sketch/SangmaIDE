@@ -27,9 +27,9 @@ import com.example.ui.viewmodel.IdeViewModel
 
 enum class IdeTab(val titleEn: String, val titleBn: String, val icon: ImageVector) {
     PREVIEW("Live Preview", "অ্যাপ প্রিভিউ", Icons.Default.PhoneAndroid),
+    APK_BUILDER("APK Builder", "এপিকে বিল্ডার", Icons.Default.Build),
     EDITOR("Editor", "কোড এডিটর", Icons.Default.Code),
     FILES("Files", "ফাইল", Icons.Default.Folder),
-    APK_BUILDER("APK Builder", "এপিকে বিল্ডার", Icons.Default.Build),
     GIT("Git", "গিট", Icons.Default.AccountTree),
     DEBUGGER("Debugger", "ডিবাগার", Icons.Default.BugReport),
     NOTRACK_AI("notrack.ai", "notrack.ai", Icons.Default.AutoAwesome),
@@ -48,6 +48,7 @@ fun MainIdeScreen(viewModel: IdeViewModel? = null) {
     val activeFileContent = viewModel?.activeFileContent?.collectAsState()?.value ?: previewActiveContent
     val allFiles = viewModel?.allFiles?.collectAsState()?.value ?: listOf(
         ProjectFile("app/src/main/java/MainActivity.kt", "MainActivity.kt", IdeViewModel.DEFAULT_MAIN_ACTIVITY_CODE, "kotlin"),
+        ProjectFile(".github/workflows/android_build.yml", "android_build.yml", "// github actions", "yaml"),
         ProjectFile("app/build.gradle.kts", "build.gradle.kts", "// build.gradle", "kotlin"),
         ProjectFile("README.md", "README.md", "# NoTrack IDE Project", "markdown")
     )
@@ -63,6 +64,7 @@ fun MainIdeScreen(viewModel: IdeViewModel? = null) {
     val consoleLogs = viewModel?.consoleLogs?.collectAsState()?.value ?: listOf(
         ConsoleLog(tag = "System", message = "NoTrack IDE E2EE Core Engine initialized", level = LogLevel.SUCCESS),
         ConsoleLog(tag = "Gradle", message = "Gradle daemon connected (v8.7)", level = LogLevel.INFO),
+        ConsoleLog(tag = "GitHub CI", message = "GitHub Auto APK workflow active", level = LogLevel.SUCCESS),
         ConsoleLog(tag = "notrack.ai", message = "Privacy-first AI completion ready", level = LogLevel.SUCCESS)
     )
     val isBuildingApk = viewModel?.isBuildingApk?.collectAsState()?.value ?: false
@@ -74,6 +76,19 @@ fun MainIdeScreen(viewModel: IdeViewModel? = null) {
         "BUILD SUCCESSFUL in 1.2s"
     )
     val apkReady = viewModel?.apkReady?.collectAsState()?.value ?: false
+
+    // GitHub Auto APK Build State
+    val isGithubBuilding = viewModel?.isGithubBuilding?.collectAsState()?.value ?: false
+    val githubProgress = viewModel?.githubBuildProgress?.collectAsState()?.value ?: 0f
+    val githubStatusMessage = viewModel?.githubBuildStatusMessage?.collectAsState()?.value ?: ""
+    val githubLogs = viewModel?.githubBuildLogs?.collectAsState()?.value ?: listOf(
+        "✓ GitHub Actions workflow verified: .github/workflows/android_build.yml",
+        "✓ Triggers: Push to main/master, Pull Request, workflow_dispatch",
+        "✓ Runner: ubuntu-latest | JDK: Temurin 17 | Task: ./gradlew assembleDebug",
+        "Status: Ready to trigger auto build"
+    )
+    val isGithubArtifactReady = viewModel?.githubArtifactReady?.collectAsState()?.value ?: false
+
     val aiResponse = viewModel?.aiResponse?.collectAsState()?.value ?: ""
     val isAiThinking = viewModel?.isAiThinking?.collectAsState()?.value ?: false
     val collaborators = viewModel?.collaborators?.collectAsState()?.value ?: emptyList()
@@ -113,7 +128,7 @@ fun MainIdeScreen(viewModel: IdeViewModel? = null) {
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = if (currentLanguage == AppLanguage.BENGALI) "প্রাইভেসি-ফাস্ট E2EE এআই অ্যান্ড্রয়েড আইডিই" else "Privacy-First E2EE Android Studio",
+                                    text = if (currentLanguage == AppLanguage.BENGALI) "GitHub CI/CD অটো এপিকে বিল্ড সহ E2EE আইডিই" else "Privacy-First E2EE Android IDE with GitHub CI/CD",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontSize = 10.sp,
                                     color = MaterialTheme.colorScheme.primary
@@ -244,7 +259,7 @@ fun MainIdeScreen(viewModel: IdeViewModel? = null) {
                         // Right Secondary Panel (Live Preview or active tool)
                         Box(
                             modifier = Modifier
-                                .width(360.dp)
+                                .width(380.dp)
                                 .fillMaxHeight()
                         ) {
                             when (activeTab) {
@@ -261,7 +276,8 @@ fun MainIdeScreen(viewModel: IdeViewModel? = null) {
                                     stagedFiles = stagedChanges,
                                     commits = allCommits,
                                     onCommit = { viewModel?.commitChanges(it) },
-                                    language = currentLanguage
+                                    language = currentLanguage,
+                                    onTriggerGithubBuild = { viewModel?.triggerGithubAutoBuild() }
                                 )
                                 IdeTab.DEBUGGER -> DebuggerPanel(
                                     breakpoints = breakpoints,
@@ -285,7 +301,14 @@ fun MainIdeScreen(viewModel: IdeViewModel? = null) {
                                         } else {
                                             previewActiveContent = newContent
                                         }
-                                    }
+                                    },
+                                    isGithubBuilding = isGithubBuilding,
+                                    githubProgress = githubProgress,
+                                    githubStatusMessage = githubStatusMessage,
+                                    githubLogs = githubLogs,
+                                    isGithubArtifactReady = isGithubArtifactReady,
+                                    onTriggerGithubBuild = { viewModel?.triggerGithubAutoBuild() },
+                                    onSaveGithubWorkflow = { viewModel?.generateOrUpdateGithubWorkflow() }
                                 )
                                 else -> LivePreviewView(
                                     activeFileContent = activeFileContent,
@@ -318,6 +341,30 @@ fun MainIdeScreen(viewModel: IdeViewModel? = null) {
                                 IdeTab.PREVIEW -> LivePreviewView(
                                     activeFileContent = activeFileContent,
                                     language = currentLanguage
+                                )
+                                IdeTab.APK_BUILDER -> ApkBuilderPanel(
+                                    isBuilding = isBuildingApk,
+                                    progress = buildProgress,
+                                    statusMessage = buildStatusMessage,
+                                    logs = buildLogOutput,
+                                    isApkReady = apkReady,
+                                    onStartBuild = { viewModel?.buildApk() },
+                                    language = currentLanguage,
+                                    activeFileContent = activeFileContent,
+                                    onUpdateCode = { newContent ->
+                                        if (viewModel != null) {
+                                            viewModel.updateActiveFileContent(newContent)
+                                        } else {
+                                            previewActiveContent = newContent
+                                        }
+                                    },
+                                    isGithubBuilding = isGithubBuilding,
+                                    githubProgress = githubProgress,
+                                    githubStatusMessage = githubStatusMessage,
+                                    githubLogs = githubLogs,
+                                    isGithubArtifactReady = isGithubArtifactReady,
+                                    onTriggerGithubBuild = { viewModel?.triggerGithubAutoBuild() },
+                                    onSaveGithubWorkflow = { viewModel?.generateOrUpdateGithubWorkflow() }
                                 )
                                 IdeTab.EDITOR -> Column(modifier = Modifier.fillMaxSize()) {
                                     Box(modifier = Modifier.weight(1f)) {
@@ -357,30 +404,14 @@ fun MainIdeScreen(viewModel: IdeViewModel? = null) {
                                     onDeleteFile = { viewModel?.deleteFile(it) },
                                     language = currentLanguage
                                 )
-                                IdeTab.APK_BUILDER -> ApkBuilderPanel(
-                                    isBuilding = isBuildingApk,
-                                    progress = buildProgress,
-                                    statusMessage = buildStatusMessage,
-                                    logs = buildLogOutput,
-                                    isApkReady = apkReady,
-                                    onStartBuild = { viewModel?.buildApk() },
-                                    language = currentLanguage,
-                                    activeFileContent = activeFileContent,
-                                    onUpdateCode = { newContent ->
-                                        if (viewModel != null) {
-                                            viewModel.updateActiveFileContent(newContent)
-                                        } else {
-                                            previewActiveContent = newContent
-                                        }
-                                    }
-                                )
                                 IdeTab.GIT -> GitPanel(
                                     currentBranch = currentBranch,
                                     onBranchChange = { viewModel?.switchBranch(it) },
                                     stagedFiles = stagedChanges,
                                     commits = allCommits,
                                     onCommit = { viewModel?.commitChanges(it) },
-                                    language = currentLanguage
+                                    language = currentLanguage,
+                                    onTriggerGithubBuild = { viewModel?.triggerGithubAutoBuild() }
                                 )
                                 IdeTab.DEBUGGER -> DebuggerPanel(
                                     breakpoints = breakpoints,
