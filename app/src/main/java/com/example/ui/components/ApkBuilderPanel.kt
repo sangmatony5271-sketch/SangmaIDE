@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -16,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
@@ -23,8 +26,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.widget.Toast
 import com.example.data.model.AppLanguage
 import com.example.data.repository.IdeRepository
+import com.example.util.ApkExportHelper
 
 enum class ApkBuildMode {
     LOCAL_ENGINE,
@@ -89,6 +94,140 @@ fun ApkBuilderPanel(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        val context = LocalContext.current
+        val saveApkLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.CreateDocument("application/vnd.android.package-archive")
+        ) { uri ->
+            if (uri != null) {
+                val success = ApkExportHelper.saveApkToUri(context, uri)
+                if (success) {
+                    Toast.makeText(
+                        context,
+                        if (language == AppLanguage.BENGALI) "APK সফলভাবে ডাউনলোড ও সেভ হয়েছে!" else "APK saved successfully to storage!",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } else {
+                    Toast.makeText(
+                        context,
+                        if (language == AppLanguage.BENGALI) "APK সেভ করতে ব্যর্থ হয়েছে" else "Failed to save APK",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+
+        // Persistent Direct APK Download Banner
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("direct_apk_download_banner")
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primary
+                        ) {
+                            Icon(
+                                Icons.Default.FileDownload,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "app-debug.apk",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                ) {
+                                    Text(
+                                        text = if (language == AppLanguage.BENGALI) "ডাউনলোড প্রস্তুত" else "Ready",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = if (language == AppLanguage.BENGALI)
+                                    "সাইজ: 23 MB • অ্যান্ড্রয়েড প্যাকেজ সরাসরি ডাউনলোড ও ইনস্টল যোগ্য"
+                                else
+                                    "Size: 23 MB • Installable Android Debug Package",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = { saveApkLauncher.launch("app-debug.apk") },
+                        modifier = Modifier
+                            .weight(1.3f)
+                            .testTag("quick_download_apk_btn"),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(15.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (language == AppLanguage.BENGALI) "APK ডাউনলোড করুন" else "Download APK", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = { ApkExportHelper.installApk(context) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("quick_install_apk_btn"),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.InstallMobile, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (language == AppLanguage.BENGALI) "ইনস্টল" else "Install", fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = { ApkExportHelper.shareApk(context) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("quick_share_apk_btn"),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (language == AppLanguage.BENGALI) "শেয়ার" else "Share", fontSize = 11.sp)
+                    }
                 }
             }
         }
@@ -331,14 +470,24 @@ fun ApkBuilderPanel(
                                             Text("app-debug.apk (14.2 MB) • GitHub Artifact", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                                         }
                                     }
-                                    Button(
-                                        onClick = { /* Download Artifact */ },
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                        modifier = Modifier.testTag("download_github_artifact_btn")
-                                    ) {
-                                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(if (language == AppLanguage.BENGALI) "APK ডাউনলোড" else "Download APK", fontSize = 11.sp)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        OutlinedButton(
+                                            onClick = { ApkExportHelper.shareApk(context) },
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(13.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(if (language == AppLanguage.BENGALI) "শেয়ার" else "Share", fontSize = 11.sp)
+                                        }
+                                        Button(
+                                            onClick = { saveApkLauncher.launch("app-debug.apk") },
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                            modifier = Modifier.testTag("download_github_artifact_btn")
+                                        ) {
+                                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(if (language == AppLanguage.BENGALI) "APK ডাউনলোড" else "Download APK", fontSize = 11.sp)
+                                        }
                                     }
                                 }
                             }
@@ -499,14 +648,25 @@ fun ApkBuilderPanel(
                                             Text("Size: 14.2 MB • E2EE Signed", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                                         }
                                     }
-                                    Button(
-                                        onClick = { /* Export */ },
-                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                        modifier = Modifier.testTag("download_apk_btn")
-                                    ) {
-                                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(if (language == AppLanguage.BENGALI) "ডাউনলোড" else "Download", fontSize = 11.sp)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        OutlinedButton(
+                                            onClick = { ApkExportHelper.shareApk(context) },
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                            modifier = Modifier.testTag("share_apk_btn")
+                                        ) {
+                                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(13.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(if (language == AppLanguage.BENGALI) "শেয়ার" else "Share", fontSize = 11.sp)
+                                        }
+                                        Button(
+                                            onClick = { saveApkLauncher.launch("app-debug.apk") },
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                            modifier = Modifier.testTag("download_apk_btn")
+                                        ) {
+                                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(if (language == AppLanguage.BENGALI) "ডাউনলোড" else "Download", fontSize = 11.sp)
+                                        }
                                     }
                                 }
                             }

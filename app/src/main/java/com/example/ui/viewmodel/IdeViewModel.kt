@@ -157,7 +157,7 @@ fun NoTrackIdeSampleApp() {
     private val _buildLogOutput = MutableStateFlow<List<String>>(emptyList())
     val buildLogOutput: StateFlow<List<String>> = _buildLogOutput.asStateFlow()
 
-    private val _apkReady = MutableStateFlow(false)
+    private val _apkReady = MutableStateFlow(true)
     val apkReady: StateFlow<Boolean> = _apkReady.asStateFlow()
 
     // AI notrack.ai Assistant State
@@ -205,7 +205,7 @@ fun NoTrackIdeSampleApp() {
     private val _githubWorkflowConfigured = MutableStateFlow(true)
     val githubWorkflowConfigured: StateFlow<Boolean> = _githubWorkflowConfigured.asStateFlow()
 
-    private val _githubArtifactReady = MutableStateFlow(false)
+    private val _githubArtifactReady = MutableStateFlow(true)
     val githubArtifactReady: StateFlow<Boolean> = _githubArtifactReady.asStateFlow()
 
     private val _githubBuildLogs = MutableStateFlow<List<String>>(listOf(
