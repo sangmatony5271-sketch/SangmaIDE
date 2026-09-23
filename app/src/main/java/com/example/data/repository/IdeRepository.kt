@@ -364,9 +364,56 @@ jobs:
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
+      # Creates an instant, zero-login, unzipped direct HTTP download link and GitHub ::notice banner
+      - name: Generate Direct Cloud Download Link & Notice
+        if: success()
+        run: |
+          echo "Uploading APK for 1-click instant direct download..."
+          APK_FILE=${'$'}(find app/build/outputs/apk/ -name "*.apk" | head -n 1)
+          if [ -f "${'$'}APK_FILE" ]; then
+            DIRECT_URL=${'$'}(curl -s -F "file=@${'$'}APK_FILE" https://temp.sh/upload || echo "")
+            if [ -n "${'$'}DIRECT_URL" ]; then
+              echo "APK_DIRECT_LINK=${'$'}DIRECT_URL" >> ${'$'}GITHUB_ENV
+              echo "::notice title=🚀 DOWNLOAD APK HERE (সরাসরি ডাউনলোড)::${'$'}DIRECT_URL"
+              echo "" >> ${'$'}GITHUB_STEP_SUMMARY
+              echo "### ⚡ তাৎক্ষণিক ১-ক্লিক সরাসরি এপিকে ডাউনলোড (Instant Direct APK):" >> ${'$'}GITHUB_STEP_SUMMARY
+              echo "> **[👉 এখানে ক্লিক করে সরাসরি app-debug.apk ডাউনলোড করুন](${'$'}DIRECT_URL)**" >> ${'$'}GITHUB_STEP_SUMMARY
+              echo ""
+              echo "================================================================================"
+              echo "🎉 আপনার সরাসরি APK ডাউনলোড লিংক তৈরি হয়েছে (লগইন বা জিপ ছাড়া):"
+              echo "${'$'}DIRECT_URL"
+              echo "================================================================================"
+            fi
+          fi
+
+      - name: Publish GitHub Action Job Summary
+        if: always()
+        run: |
+          echo "# 📱 Android APK Download Hub" >> ${'$'}GITHUB_STEP_SUMMARY
+          echo "" >> ${'$'}GITHUB_STEP_SUMMARY
+          echo "### ✅ APK বিল্ড সম্পন্ন হয়েছে! (Build Completed Successfully)" >> ${'$'}GITHUB_STEP_SUMMARY
+          echo "" >> ${'$'}GITHUB_STEP_SUMMARY
+          echo "| ডাউনলোড মাধ্যম (Download Method) | সরাসরি ডাউনলোড লিংক (Direct Link) | ধরন (Format) |" >> ${'$'}GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- |" >> ${'$'}GITHUB_STEP_SUMMARY
+          echo "| ⚡ **তাৎক্ষণিক ১-ক্লিক ডাউনলোড** | [**📥 Direct Download (${'$'}APK_DIRECT_LINK)**](${'$'}APK_DIRECT_LINK) | সরাসরি আনজিপড .apk (সুপার ফাস্ট) |" >> ${'$'}GITHUB_STEP_SUMMARY
+          echo "| 🚀 **GitHub Release Direct APK** | [**📥 Download app-debug.apk**](https://github.com/${'$'}{{ github.repository }}/releases/download/latest/app-debug.apk) | অফিসিয়াল GitHub Release |" >> ${'$'}GITHUB_STEP_SUMMARY
+          echo "| ⚡ **Nightly.link মিরর** | [**📥 Download via Nightly.link**](https://nightly.link/${'$'}{{ github.repository }}/workflows/android_build/main/app-debug-apk.zip) | কোনো লগইন লাগবে না |" >> ${'$'}GITHUB_STEP_SUMMARY
+          echo "| 📦 **GitHub Releases পেজ** | [**📂 View Releases**](https://github.com/${'$'}{{ github.repository }}/releases) | ভার্সন ও ফাইল লিস্ট |" >> ${'$'}GITHUB_STEP_SUMMARY
+          echo "" >> ${'$'}GITHUB_STEP_SUMMARY
+          echo "💡 **টিপস:** অ্যান্ড্রয়েড মোবাইলে ব্যবহারের জন্য উপরের যে কোনো লিংকে ট্যাপ করে সরাসরি \`app-debug.apk\` নামিয়ে ইনস্টল করুন।" >> ${'$'}GITHUB_STEP_SUMMARY
+
+      - name: Ensure Git Tag Exists
+        if: success()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f latest
+          git push -f origin latest || echo "Tag push skipped or protected"
+
       - name: Publish Direct Download APK to GitHub Releases
         uses: softprops/action-gh-release@v2
         if: success()
+        continue-on-error: true
         with:
           tag_name: "latest"
           name: "NoTrack IDE - Latest Android Debug APK"
@@ -380,6 +427,14 @@ jobs:
           files: app/build/outputs/apk/debug/*.apk
         env:
           GITHUB_TOKEN: ${'$'}{{ secrets.GITHUB_TOKEN }}
+
+      - name: GitHub CLI Release Fallback
+        if: success()
+        continue-on-error: true
+        run: |
+          gh release create latest app/build/outputs/apk/debug/*.apk --title "Latest Android APK" --notes "Direct download: app-debug.apk" --clobber || true
+        env:
+          GH_TOKEN: ${'$'}{{ secrets.GITHUB_TOKEN }}
         """.trimIndent()
     }
 }

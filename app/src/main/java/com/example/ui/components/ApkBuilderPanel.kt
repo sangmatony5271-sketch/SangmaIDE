@@ -536,55 +536,88 @@ fun ApkBuilderPanel(
                                 val releaseDownloadUrl = "https://github.com/$cleanRepo/releases/download/latest/app-debug.apk"
                                 val releasesPageUrl = "https://github.com/$cleanRepo/releases"
                                 val actionsPageUrl = "https://github.com/$cleanRepo/actions"
+                                val nightlyLinkUrl = "https://nightly.link/$cleanRepo/workflows/android_build/main/app-debug-apk.zip"
 
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Button(
-                                        onClick = {
-                                            ApkExportHelper.openWebUrl(context, releaseDownloadUrl)
-                                        },
-                                        modifier = Modifier.weight(1.2f).testTag("direct_github_release_apk_download_btn"),
-                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(13.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(if (language == AppLanguage.BENGALI) "সরাসরি APK ডাউনলোড" else "Direct APK", fontSize = 10.sp)
+                                        Button(
+                                            onClick = {
+                                                ApkExportHelper.openWebUrl(context, releaseDownloadUrl)
+                                            },
+                                            modifier = Modifier.weight(1.2f).testTag("direct_github_release_apk_download_btn"),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(13.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(if (language == AppLanguage.BENGALI) "🚀 Release APK সরাসরি ডাউনলোড" else "Direct APK (Release)", fontSize = 10.sp)
+                                        }
+
+                                        Button(
+                                            onClick = {
+                                                ApkExportHelper.openWebUrl(context, nightlyLinkUrl)
+                                            },
+                                            modifier = Modifier.weight(1f).testTag("nightly_link_download_btn"),
+                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(Icons.Default.FlashOn, contentDescription = null, modifier = Modifier.size(13.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(if (language == AppLanguage.BENGALI) "⚡ 1-Click ডাউনলোড" else "1-Click Download", fontSize = 10.sp)
+                                        }
                                     }
 
-                                    OutlinedButton(
-                                        onClick = {
-                                            ApkExportHelper.openWebUrl(context, actionsPageUrl)
-                                        },
-                                        modifier = Modifier.weight(1f).testTag("open_github_actions_page_btn"),
-                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(12.dp))
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text(if (language == AppLanguage.BENGALI) "Actions পেজ" else "Actions Runs", fontSize = 10.sp)
-                                    }
+                                        OutlinedButton(
+                                            onClick = {
+                                                ApkExportHelper.openWebUrl(context, releasesPageUrl)
+                                            },
+                                            modifier = Modifier.weight(1f).testTag("open_github_releases_page_btn"),
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(Icons.Default.FolderZip, contentDescription = null, modifier = Modifier.size(12.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(if (language == AppLanguage.BENGALI) "📦 Releases পেজ" else "Releases Page", fontSize = 10.sp)
+                                        }
 
-                                    OutlinedButton(
-                                        onClick = {
-                                            clipboardManager.setText(AnnotatedString(releaseDownloadUrl))
-                                            Toast.makeText(context, if (language == AppLanguage.BENGALI) "ডাউনলোড লিংক কপি করা হয়েছে!" else "Download link copied!", Toast.LENGTH_SHORT).show()
-                                        },
-                                        modifier = Modifier.weight(0.8f).testTag("copy_release_apk_url_btn"),
-                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
-                                    ) {
-                                        Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(12.dp))
-                                        Spacer(modifier = Modifier.width(3.dp))
-                                        Text(if (language == AppLanguage.BENGALI) "কপি" else "Copy", fontSize = 10.sp)
+                                        OutlinedButton(
+                                            onClick = {
+                                                ApkExportHelper.openWebUrl(context, actionsPageUrl)
+                                            },
+                                            modifier = Modifier.weight(1f).testTag("open_github_actions_page_btn"),
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(Icons.Default.OpenInNew, contentDescription = null, modifier = Modifier.size(12.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(if (language == AppLanguage.BENGALI) "🏃 Actions পেজ" else "Actions Runs", fontSize = 10.sp)
+                                        }
+
+                                        OutlinedButton(
+                                            onClick = {
+                                                clipboardManager.setText(AnnotatedString(releaseDownloadUrl))
+                                                Toast.makeText(context, if (language == AppLanguage.BENGALI) "ডাউনলোড লিংক কপি করা হয়েছে!" else "Download link copied!", Toast.LENGTH_SHORT).show()
+                                            },
+                                            modifier = Modifier.weight(0.8f).testTag("copy_release_apk_url_btn"),
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                                        ) {
+                                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(12.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(if (language == AppLanguage.BENGALI) "কপি" else "Copy", fontSize = 10.sp)
+                                        }
                                     }
                                 }
 
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = if (language == AppLanguage.BENGALI)
-                                        "💡 ব্যাখ্যা: GitHub Actions Artifacts সাধারণত .zip ফরম্যাটে থাকে। কিন্তু 'সরাসরি APK ডাউনলোড' বাটনে চাপলে স্বয়ংক্রিয় GitHub Release থেকে সরাসরি আনজিপড .apk ডাউনলোড ও ইনস্টল করা যাবে।"
+                                        "💡 ব্যাখ্যা: GitHub Actions Artifacts সাধারণত .zip ফরম্যাটে থাকে। কিন্তু 'Release APK সরাসরি ডাউনলোড' বা '1-Click ডাউনলোড' বাটনে চাপলে স্বয়ংক্রিয়ভাবে সরাসরি আনজিপড .apk ডাউনলোড ও ইনস্টল করা যাবে।"
                                     else
-                                        "💡 Tip: GitHub Artifacts download as .zip by default. Use 'Direct APK' to fetch the installable unzipped .apk straight from Releases.",
+                                        "💡 Tip: GitHub Artifacts download as .zip by default. Use 'Direct APK' or '1-Click' to download installable unzipped .apk straight from GitHub.",
                                     fontSize = 9.sp,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                     lineHeight = 12.sp
