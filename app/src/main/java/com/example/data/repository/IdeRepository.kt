@@ -318,6 +318,7 @@ jobs:
           echo "ANDROID_HOME=${'$'}ANDROID_SDK_PATH" >> ${'$'}GITHUB_ENV
           echo "ANDROID_SDK_ROOT=${'$'}ANDROID_SDK_PATH" >> ${'$'}GITHUB_ENV
           echo "sdk.dir=${'$'}ANDROID_SDK_PATH" > local.properties
+          touch .env
           
           # Pre-approve all license hashes instantly to bypass sdkmanager network hang & updates
           mkdir -p "${'$'}ANDROID_SDK_PATH/licenses"
@@ -327,6 +328,12 @@ jobs:
           printf "859f317696f67ef3d7f30a50a5560e7834b43903\n" > "${'$'}ANDROID_SDK_PATH/licenses/android-sdk-arm-dbt-license"
           printf "33b6a2b64907970da36f5f4dc4f3010c43f8b503\n" > "${'$'}ANDROID_SDK_PATH/licenses/google-gdk-license"
           printf "e9acab587f1749a4f1f75642903741a49219b130\n" > "${'$'}ANDROID_SDK_PATH/licenses/mips-android-sysimage-license"
+
+      - name: Ensure Debug Keystore Exists
+        run: |
+          if [ ! -f "debug.keystore" ]; then
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
 
       - name: Grant execute permission for gradlew
         run: |

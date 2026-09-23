@@ -29,8 +29,28 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      # Fix: Bypasses 'sdkmanager tools' hang. GitHub runners already have the full Android SDK installed.
+      - name: Set up Android SDK & Accept Licenses
+        run: |
+          ANDROID_SDK_PATH=${ANDROID_HOME:-/usr/local/lib/android/sdk}
+          echo "ANDROID_HOME=$ANDROID_SDK_PATH" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_PATH" >> $GITHUB_ENV
+          echo "sdk.dir=$ANDROID_SDK_PATH" > local.properties
+          touch .env
+          
+          mkdir -p "$ANDROID_SDK_PATH/licenses"
+          printf "24333f8a63b1d8f28fe1ac9c765083abddca0943\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n" > "$ANDROID_SDK_PATH/licenses/android-sdk-license"
+          printf "84831b9409646a256e301447a82405a741525ddc\n" > "$ANDROID_SDK_PATH/licenses/android-sdk-preview-license"
+          printf "601085b94cd77f0b54ff864069554499418f6d66\n" > "$ANDROID_SDK_PATH/licenses/android-googletv-license"
+          printf "859f317696f67ef3d7f30a50a5560e7834b43903\n" > "$ANDROID_SDK_PATH/licenses/android-sdk-arm-dbt-license"
+          printf "33b6a2b64907970da36f5f4dc4f3010c43f8b503\n" > "$ANDROID_SDK_PATH/licenses/google-gdk-license"
+          printf "e9acab587f1749a4f1f75642903741a49219b130\n" > "$ANDROID_SDK_PATH/licenses/mips-android-sysimage-license"
+
+      - name: Ensure Debug Keystore Exists
+        run: |
+          if [ ! -f "debug.keystore" ]; then
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
 
       - name: Grant execute permission for gradlew
         run: |
@@ -48,7 +68,7 @@ jobs:
 
       - name: Verify APK Output
         run: |
-          echo "Checking generated APK files:"
+          echo "Generated APKs:"
           find app/build/outputs/apk/ -name "*.apk" -ls || ls -la app/build/outputs/
 
       - name: Upload Debug APK Artifact
