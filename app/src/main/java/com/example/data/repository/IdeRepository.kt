@@ -293,6 +293,9 @@ concurrency:
   group: ${'$'}{{ github.workflow }}-${'$'}{{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
   build-apk:
     name: Build Android APK
@@ -357,16 +360,24 @@ jobs:
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: NoTrack-IDE-Debug-APK
+          name: app-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 30
 
-      - name: Auto-Release APK (On Version Tag)
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Publish Direct Download APK to GitHub Releases
         uses: softprops/action-gh-release@v2
+        if: success()
         with:
+          tag_name: "latest"
+          name: "NoTrack IDE - Latest Android Debug APK"
+          body: |
+            ### 📱 NoTrack IDE - Direct Download APK
+            - **Direct APK Download:** [Download `app-debug.apk`](https://github.com/${'$'}{{ github.repository }}/releases/download/latest/app-debug.apk)
+            - **Commit:** ${'$'}{{ github.sha }}
+            - Automatically built by GitHub Actions CI/CD.
+          draft: false
+          prerelease: false
           files: app/build/outputs/apk/debug/*.apk
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${'$'}{{ secrets.GITHUB_TOKEN }}
         """.trimIndent()
